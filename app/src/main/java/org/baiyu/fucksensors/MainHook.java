@@ -29,6 +29,7 @@ public class MainHook implements IXposedHookLoadPackage{
                         if (param.args[1] instanceof Sensor s) {
                             if (sensorsList.contains(s.getType())) {
                                 param.setResult(true);
+                                XposedBridge.log("Sensor Fucked: " + lpparam.packageName + ": " + s.getName() + ", " + s.getStringType());
                             }
                         }
                     }
