@@ -1,25 +1,29 @@
 package org.baiyu.fucksensors;
 
 import android.content.SharedPreferences;
-import android.hardware.Sensor;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.baiyu.fucksensors.sensor.SensorEnvironment;
+import org.baiyu.fucksensors.sensor.SensorLocation;
+import org.baiyu.fucksensors.sensor.SensorMotion;
+import org.baiyu.fucksensors.sensor.SensorType;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import de.robv.android.xposed.XSharedPreferences;
 
 public class Settings {
 
-    private final SharedPreferences prefs;
+    public static final String PREF_MOTION = "motion";
+    public static final String PREF_LOCATION = "location";
+    public static final String PREF_ENVIRONMENT = "environment";
     private volatile static Settings INSTANCE;
-    private Map<String, Integer> sensorTypes;
+    private final SharedPreferences prefs;
 
     private Settings(SharedPreferences prefs) {
         this.prefs = prefs;
-        initSensorTypes();
     }
 
     public static Settings getInstance(SharedPreferences prefs) {
@@ -33,33 +37,24 @@ public class Settings {
         return INSTANCE;
     }
 
-    public Map<String, Integer> getSensorTypes() {
-        return sensorTypes;
-    }
-
-    public List<Integer> getBlockSensorsList() {
-        if (prefs instanceof XSharedPreferences) {
-            ((XSharedPreferences) prefs).reload();
+    public Set<Integer> getBlockSensorsSet() {
+        if (prefs instanceof XSharedPreferences xPrefs) {
+            xPrefs.reload();
         }
-        return sensorTypes.entrySet().stream()
-                .filter(entry -> prefs.getBoolean(entry.getKey(), false))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toList());
+        Set<SensorType> allSensorTypes = new HashSet<>();
+        if (prefs.getBoolean(PREF_MOTION, true)) {
+            Collections.addAll(allSensorTypes, SensorMotion.values());
+        }
+        if (prefs.getBoolean(PREF_LOCATION, true)) {
+            Collections.addAll(allSensorTypes, SensorLocation.values());
+        }
+        if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
+            Collections.addAll(allSensorTypes, SensorEnvironment.values());
+        }
 
-    }
-
-    private void initSensorTypes() {
-        sensorTypes = new HashMap<>();
-        Arrays.stream(Sensor.class.getDeclaredFields())
-                .filter(field -> field.getType() == int.class)
-                .filter(field -> field.getName().startsWith("TYPE_"))
-                .forEach(field -> {
-                    try {
-                        sensorTypes.put(
-                                (String) Sensor.class.getField("STRING_" + field.getName()).get(null),
-                                field.getInt(null));
-                    } catch (IllegalAccessException | NoSuchFieldException ignored) {
-                    }
-                });
+        return allSensorTypes.stream()
+                .map(SensorType::getType)
+                .filter(it -> prefs.getBoolean(String.valueOf(it), true))
+                .collect(Collectors.toSet());
     }
 }

@@ -82,12 +82,14 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static class DefaultSensorHook extends XC_MethodHook {
         private final XC_LoadPackage.LoadPackageParam lpparam;
+
         private DefaultSensorHook(XC_LoadPackage.LoadPackageParam lpparam) {
             this.lpparam = lpparam;
         }
+
         @Override
         protected void afterHookedMethod(MethodHookParam param) {
-            if (param.getResult() instanceof Sensor s && s != null && settings.getBlockSensorsList().contains(s.getType())) {
+            if (param.getResult() instanceof Sensor s && s != null && settings.getBlockSensorsSet().contains(s.getType())) {
                 param.setResult(null);
                 XposedBridge.log("Sensor Fucked(Default Hook): " + lpparam.packageName + ": " + s.getName() + ", " + s.getStringType());
             }
@@ -105,18 +107,18 @@ public class MainHook implements IXposedHookLoadPackage {
         protected void afterHookedMethod(MethodHookParam param) {
             if (param.getResult() instanceof List<?> sensorList && sensorList != null) {
                 param.setResult(sensorList.stream()
-                        .filter(sensor -> !settings.getBlockSensorsList().contains(((Sensor) sensor).getType()))
+                        .filter(sensor -> !settings.getBlockSensorsSet().contains(((Sensor) sensor).getType()))
                         .collect(Collectors.toList()));
                 //noinspection unchecked
                 List<Sensor> hiddenSensors = (List<Sensor>) sensorList.stream()
-                        .filter(sensor -> settings.getBlockSensorsList().contains(((Sensor) sensor).getType()))
+                        .filter(sensor -> settings.getBlockSensorsSet().contains(((Sensor) sensor).getType()))
                         .collect(Collectors.toList());
 
                 if (hiddenSensors.isEmpty()) {
                     return;
                 }
                 StringBuilder sb = new StringBuilder();
-                for (Sensor sensor: hiddenSensors) {
+                for (Sensor sensor : hiddenSensors) {
                     sb.append(sensor.getName()).append(", ").append(sensor.getStringType()).append("; ");
                 }
                 XposedBridge.log("Sensor Fucked(List Hook): " + lpparam.packageName + ": " + sb.toString());
@@ -126,6 +128,7 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static class ListenerHook extends XC_MethodHook {
         private final XC_LoadPackage.LoadPackageParam lpparam;
+
         public ListenerHook(XC_LoadPackage.LoadPackageParam lpparam) {
             this.lpparam = lpparam;
         }
@@ -133,7 +136,7 @@ public class MainHook implements IXposedHookLoadPackage {
         @Override
         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
             super.beforeHookedMethod(param);
-            if (param.args[1] instanceof Sensor s && settings.getBlockSensorsList().contains(s.getType())) {
+            if (param.args[1] instanceof Sensor s && settings.getBlockSensorsSet().contains(s.getType())) {
                 param.setResult(true);
                 XposedBridge.log("Sensor Fucked(Listener Hook): " + lpparam.packageName + ": " + s.getName() + ", " + s.getStringType());
             }
