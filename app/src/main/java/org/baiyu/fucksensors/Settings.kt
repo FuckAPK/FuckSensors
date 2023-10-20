@@ -1,60 +1,43 @@
-package org.baiyu.fucksensors;
+package org.baiyu.fucksensors
 
-import android.content.SharedPreferences;
+import android.content.SharedPreferences
+import de.robv.android.xposed.XSharedPreferences
+import org.baiyu.fucksensors.sensor.SensorEnvironment
+import org.baiyu.fucksensors.sensor.SensorLocation
+import org.baiyu.fucksensors.sensor.SensorMotion
+import org.baiyu.fucksensors.sensor.SensorType
 
-import org.baiyu.fucksensors.sensor.SensorEnvironment;
-import org.baiyu.fucksensors.sensor.SensorLocation;
-import org.baiyu.fucksensors.sensor.SensorMotion;
-import org.baiyu.fucksensors.sensor.SensorType;
+class Settings private constructor(private val prefs: SharedPreferences) {
+    val blockSensorsSet: Set<Int>
+        get() {
+            (prefs as? XSharedPreferences)?.reload()
+            val allSensorTypes: MutableSet<SensorType> = HashSet()
+            if (prefs.getBoolean(PREF_MOTION, true)) {
+                allSensorTypes.addAll(SensorMotion.values())
+            }
+            if (prefs.getBoolean(PREF_LOCATION, true)) {
+                allSensorTypes.addAll(SensorLocation.values())
+            }
+            if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
+                allSensorTypes.addAll(SensorEnvironment.values())
+            }
+            return allSensorTypes.asSequence()
+                .map { it.type }
+                .filter { prefs.getBoolean(it.toString(), true) }
+                .toSet()
+        }
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+    companion object {
+        const val PREF_MOTION = "motion"
+        const val PREF_LOCATION = "location"
+        const val PREF_ENVIRONMENT = "environment"
 
-import de.robv.android.xposed.XSharedPreferences;
-
-public class Settings {
-
-    public static final String PREF_MOTION = "motion";
-    public static final String PREF_LOCATION = "location";
-    public static final String PREF_ENVIRONMENT = "environment";
-    private volatile static Settings INSTANCE;
-    private final SharedPreferences prefs;
-
-    private Settings(SharedPreferences prefs) {
-        this.prefs = prefs;
-    }
-
-    public static Settings getInstance(SharedPreferences prefs) {
-        if (INSTANCE == null) {
-            synchronized (Settings.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new Settings(prefs);
-                }
+        @Volatile
+        private var INSTANCE: Settings? = null
+        fun getInstance(prefs: SharedPreferences): Settings {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Settings(prefs).also { INSTANCE = it }
             }
         }
-        return INSTANCE;
-    }
-
-    public Set<Integer> getBlockSensorsSet() {
-        if (prefs instanceof XSharedPreferences xPrefs) {
-            xPrefs.reload();
-        }
-        Set<SensorType> allSensorTypes = new HashSet<>();
-        if (prefs.getBoolean(PREF_MOTION, true)) {
-            Collections.addAll(allSensorTypes, SensorMotion.values());
-        }
-        if (prefs.getBoolean(PREF_LOCATION, true)) {
-            Collections.addAll(allSensorTypes, SensorLocation.values());
-        }
-        if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
-            Collections.addAll(allSensorTypes, SensorEnvironment.values());
-        }
-
-        return allSensorTypes.stream()
-                .map(SensorType::getType)
-                .filter(it -> prefs.getBoolean(String.valueOf(it), true))
-                .collect(Collectors.toSet());
     }
 }

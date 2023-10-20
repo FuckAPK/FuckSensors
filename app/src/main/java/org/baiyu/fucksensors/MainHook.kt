@@ -1,146 +1,135 @@
-package org.baiyu.fucksensors;
+package org.baiyu.fucksensors
 
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
-import android.hardware.TriggerEventListener;
+import android.hardware.Sensor
+import android.hardware.SensorManager
+import android.hardware.TriggerEventListener
+import de.robv.android.xposed.IXposedHookLoadPackage
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XSharedPreferences
+import de.robv.android.xposed.XposedBridge
+import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XSharedPreferences;
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
-
-public class MainHook implements IXposedHookLoadPackage {
-    private static final Settings settings = Settings.getInstance(
-            new XSharedPreferences(BuildConfig.APPLICATION_ID)
-    );
-
-    @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
-        if (BuildConfig.APPLICATION_ID.equals(lpparam.packageName)) {
-            return;
+class MainHook : IXposedHookLoadPackage {
+    override fun handleLoadPackage(lpparam: LoadPackageParam) {
+        if (BuildConfig.APPLICATION_ID == lpparam.packageName) {
+            return
         }
-
         try {
             XposedBridge.hookAllMethods(
-                    SensorManager.class,
-                    "registerListener",
-                    new ListenerHook(lpparam)
-            );
-        } catch (Throwable t) {
-            XposedBridge.log("Fuck Sensors: registerListener hook failed.");
-            XposedBridge.log(t);
+                SensorManager::class.java,
+                "registerListener",
+                ListenerHook(lpparam)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("Fuck Sensors: registerListener hook failed.")
+            XposedBridge.log(t)
         }
-
         try {
             XposedBridge.hookMethod(
-                    SensorManager.class.getMethod("requestTriggerSensor", TriggerEventListener.class, Sensor.class),
-                    new ListenerHook(lpparam)
-            );
-        } catch (Throwable t) {
-            XposedBridge.log("Fuck Sensors: requestTriggerSensor hook failed.");
-            XposedBridge.log(t);
+                SensorManager::class.java.getMethod(
+                    "requestTriggerSensor",
+                    TriggerEventListener::class.java,
+                    Sensor::class.java
+                ),
+                ListenerHook(lpparam)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("Fuck Sensors: requestTriggerSensor hook failed.")
+            XposedBridge.log(t)
         }
-
         try {
             XposedBridge.hookMethod(
-                    SensorManager.class.getMethod("getSensorList", int.class),
-                    new SensorListHook(lpparam)
-            );
-        } catch (Throwable t) {
-            XposedBridge.log("Fuck Sensors: getSensorList hook failed.");
-            XposedBridge.log(t);
+                SensorManager::class.java.getMethod("getSensorList", Int::class.javaPrimitiveType),
+                SensorListHook(lpparam)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("Fuck Sensors: getSensorList hook failed.")
+            XposedBridge.log(t)
         }
-
         try {
             XposedBridge.hookMethod(
-                    SensorManager.class.getMethod("getDynamicSensorList", int.class),
-                    new SensorListHook(lpparam)
-            );
-        } catch (Throwable t) {
-            XposedBridge.log("Fuck Sensors: getDynamicSensorList hook failed.");
-            XposedBridge.log(t);
+                SensorManager::class.java.getMethod(
+                    "getDynamicSensorList",
+                    Int::class.javaPrimitiveType
+                ),
+                SensorListHook(lpparam)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("Fuck Sensors: getDynamicSensorList hook failed.")
+            XposedBridge.log(t)
         }
-
         try {
             XposedBridge.hookMethod(
-                    SensorManager.class.getMethod("getDefaultSensor", int.class),
-                    new DefaultSensorHook(lpparam)
-            );
+                SensorManager::class.java.getMethod(
+                    "getDefaultSensor",
+                    Int::class.javaPrimitiveType
+                ),
+                DefaultSensorHook(lpparam)
+            )
             XposedBridge.hookMethod(
-                    SensorManager.class.getMethod("getDefaultSensor", int.class, boolean.class),
-                    new DefaultSensorHook(lpparam)
-            );
-        } catch (Throwable t) {
-            XposedBridge.log("Fuck Sensors: getDefaultSensor hook failed.");
-            XposedBridge.log(t);
+                SensorManager::class.java.getMethod(
+                    "getDefaultSensor",
+                    Int::class.javaPrimitiveType,
+                    Boolean::class.javaPrimitiveType
+                ),
+                DefaultSensorHook(lpparam)
+            )
+        } catch (t: Throwable) {
+            XposedBridge.log("Fuck Sensors: getDefaultSensor hook failed.")
+            XposedBridge.log(t)
         }
     }
 
-    private static class DefaultSensorHook extends XC_MethodHook {
-        private final XC_LoadPackage.LoadPackageParam lpparam;
+    private class DefaultSensorHook(private val lpparam: LoadPackageParam) : XC_MethodHook() {
+        override fun afterHookedMethod(param: MethodHookParam) {
+            val s = (param.result as? Sensor) ?: return
 
-        private DefaultSensorHook(XC_LoadPackage.LoadPackageParam lpparam) {
-            this.lpparam = lpparam;
-        }
-
-        @Override
-        protected void afterHookedMethod(MethodHookParam param) {
-            if (param.getResult() instanceof Sensor s && s != null && settings.getBlockSensorsSet().contains(s.getType())) {
-                param.setResult(null);
-                XposedBridge.log("Sensor Fucked(Default Hook): " + lpparam.packageName + ": " + s.getName() + ", " + s.getStringType());
+            if (settings.blockSensorsSet.contains(s.type)) {
+                param.result = null
+                XposedBridge.log("Sensor Fucked(Default Hook): " + lpparam.packageName + ": " + s.name + ", " + s.stringType)
             }
         }
     }
 
-    private static class SensorListHook extends XC_MethodHook {
-        private final XC_LoadPackage.LoadPackageParam lpparam;
+    private class SensorListHook(private val lpparam: LoadPackageParam) : XC_MethodHook() {
+        override fun afterHookedMethod(param: MethodHookParam) {
+            val sensorList = (param.result as? List<*>) ?: return
 
-        public SensorListHook(XC_LoadPackage.LoadPackageParam lpparam) {
-            this.lpparam = lpparam;
+            param.result = sensorList.asSequence()
+                .map { it as Sensor }
+                .filter { !settings.blockSensorsSet.contains(it.type) }
+                .toList()
+
+            val hiddenSensors = sensorList.asSequence()
+                .map { it as Sensor }
+                .filter { settings.blockSensorsSet.contains(it.type) }
+                .toList()
+            if (hiddenSensors.isEmpty()) {
+                return
+            }
+            val sb = StringBuilder()
+            for (sensor in hiddenSensors) {
+                sb.append(sensor.name).append(", ").append(sensor.stringType).append("; ")
+            }
+            XposedBridge.log("Sensor Fucked(List Hook): " + lpparam.packageName + ": " + sb.toString())
         }
+    }
 
-        @Override
-        protected void afterHookedMethod(MethodHookParam param) {
-            if (param.getResult() instanceof List<?> sensorList && sensorList != null) {
-                param.setResult(sensorList.stream()
-                        .filter(sensor -> !settings.getBlockSensorsSet().contains(((Sensor) sensor).getType()))
-                        .collect(Collectors.toList()));
-                //noinspection unchecked
-                List<Sensor> hiddenSensors = (List<Sensor>) sensorList.stream()
-                        .filter(sensor -> settings.getBlockSensorsSet().contains(((Sensor) sensor).getType()))
-                        .collect(Collectors.toList());
+    private class ListenerHook(private val lpparam: LoadPackageParam) : XC_MethodHook() {
+        @Throws(Throwable::class)
+        override fun beforeHookedMethod(param: MethodHookParam) {
+            val s = (param.args[1] as? Sensor) ?: return
 
-                if (hiddenSensors.isEmpty()) {
-                    return;
-                }
-                StringBuilder sb = new StringBuilder();
-                for (Sensor sensor : hiddenSensors) {
-                    sb.append(sensor.getName()).append(", ").append(sensor.getStringType()).append("; ");
-                }
-                XposedBridge.log("Sensor Fucked(List Hook): " + lpparam.packageName + ": " + sb.toString());
+            if (settings.blockSensorsSet.contains(s.type)) {
+                param.result = true
+                XposedBridge.log("Sensor Fucked(Listener Hook): " + lpparam.packageName + ": " + s.name + ", " + s.stringType)
             }
         }
     }
 
-    private static class ListenerHook extends XC_MethodHook {
-        private final XC_LoadPackage.LoadPackageParam lpparam;
-
-        public ListenerHook(XC_LoadPackage.LoadPackageParam lpparam) {
-            this.lpparam = lpparam;
-        }
-
-        @Override
-        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-            super.beforeHookedMethod(param);
-            if (param.args[1] instanceof Sensor s && settings.getBlockSensorsSet().contains(s.getType())) {
-                param.setResult(true);
-                XposedBridge.log("Sensor Fucked(Listener Hook): " + lpparam.packageName + ": " + s.getName() + ", " + s.getStringType());
-            }
-        }
+    companion object {
+        private val settings: Settings = Settings.getInstance(
+            XSharedPreferences(BuildConfig.APPLICATION_ID)
+        )
     }
-
 }

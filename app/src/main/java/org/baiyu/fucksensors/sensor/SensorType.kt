@@ -1,5 +1,5 @@
-package org.baiyu.fucksensors.sensor;
+package org.baiyu.fucksensors.sensor
 
-public interface SensorType {
-    int getType();
+interface SensorType {
+    val type: Int
 }

@@ -1,138 +1,125 @@
-package org.baiyu.fucksensors;
+package org.baiyu.fucksensors
 
-import android.annotation.SuppressLint;
-import android.os.Bundle;
+import android.annotation.SuppressLint
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
+import org.baiyu.fucksensors.sensor.SensorEnvironment
+import org.baiyu.fucksensors.sensor.SensorLocation
+import org.baiyu.fucksensors.sensor.SensorMotion
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.preference.PreferenceCategory;
-import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceScreen;
-import androidx.preference.SwitchPreferenceCompat;
-
-import org.baiyu.fucksensors.sensor.SensorEnvironment;
-import org.baiyu.fucksensors.sensor.SensorLocation;
-import org.baiyu.fucksensors.sensor.SensorMotion;
-
-import java.util.stream.Stream;
-
-public class SettingsActivity extends AppCompatActivity {
-
+class SettingsActivity : AppCompatActivity() {
     @SuppressLint("WorldReadableFiles")
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.settings_layout);
-
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.settings_layout)
         try {
-            //noinspection deprecation
-            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_WORLD_READABLE);
-        } catch (Exception e) {
-            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_PRIVATE);
+            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_WORLD_READABLE)
+        } catch (e: Exception) {
+            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_PRIVATE)
         }
-
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.settings_container, new MySettingsFragment())
-                .commit();
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.settings_container, MySettingsFragment())
+            .commit()
     }
 
-    public static class MySettingsFragment extends PreferenceFragmentCompat {
-        @Override
-        public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
-            setPreferencesFromResource(R.xml.preferences, rootKey);
+    class MySettingsFragment : PreferenceFragmentCompat() {
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.preferences, rootKey)
+            val preferenceScreen = this.preferenceScreen
 
-            PreferenceScreen preferenceScreen = this.getPreferenceScreen();
+            val firstTitle = resources.getString(R.string.title_all)
 
             // Motion
-            PreferenceCategory MotionCate = new PreferenceCategory(requireContext());
-            MotionCate.setTitle(R.string.title_motion_cate);
-            MotionCate.setIconSpaceReserved(false);
-            preferenceScreen.addPreference(MotionCate);
+            val motionCate = PreferenceCategory(requireContext()).apply {
+                title = resources.getString(R.string.title_motion_cate)
+                isIconSpaceReserved = false
+            }
+            preferenceScreen.addPreference(motionCate)
 
+            motionCate.addPreference(
+                SwitchPreferenceCompat(requireContext()).apply {
+                    key = Settings.PREF_MOTION
+                    title = firstTitle
+                    setDefaultValue(true)
+                    isIconSpaceReserved = false
+                }
+            )
+            SensorMotion.values().asSequence().forEach {
+                val s = SwitchPreferenceCompat(requireContext()).apply {
+                    key = it.type.toString()
+                    title = it.name.substring(5)
+                    setDefaultValue(true)
+                    isIconSpaceReserved = false
+                }
+                motionCate.addPreference(s)
+            }
 
-            final String KEY_MOTION = Settings.PREF_MOTION;
-            final String KEY_LOCATION = Settings.PREF_LOCATION;
-            final String KEY_ENVIRONMENT = Settings.PREF_ENVIRONMENT;
-            final String Title = getResources().getString(R.string.title_all);
-
-            SwitchPreferenceCompat sm = new SwitchPreferenceCompat(requireContext());
-            sm.setKey(KEY_MOTION);
-            sm.setTitle(Title);
-            sm.setDefaultValue(true);
-            sm.setIconSpaceReserved(false);
-            MotionCate.addPreference(sm);
-
-            Stream.of(SensorMotion.values()).sorted().forEach(
-                    it -> {
-                        SwitchPreferenceCompat s = new SwitchPreferenceCompat(requireContext());
-                        s.setKey(String.valueOf(it.getType()));
-                        s.setTitle(it.name().substring(5));
-                        s.setDefaultValue(true);
-                        s.setIconSpaceReserved(false);
-                        MotionCate.addPreference(s);
-                    }
-            );
-            for (int i = 1; i < MotionCate.getPreferenceCount(); i++) {
-                MotionCate.getPreference(i).setDependency(KEY_MOTION);
+            for (i in 1 until motionCate.preferenceCount) {
+                motionCate.getPreference(i).dependency = Settings.PREF_MOTION
             }
 
             // Location
-            PreferenceCategory LocationCate = new PreferenceCategory(requireContext());
-            LocationCate.setTitle(R.string.title_location_cate);
-            LocationCate.setIconSpaceReserved(false);
-            preferenceScreen.addPreference(LocationCate);
+            val locationCate = PreferenceCategory(requireContext()).apply {
+                title = resources.getString(R.string.title_location_cate)
+                isIconSpaceReserved = false
+            }
+            preferenceScreen.addPreference(locationCate)
 
-
-            SwitchPreferenceCompat sl = new SwitchPreferenceCompat(requireContext());
-            sl.setKey(KEY_LOCATION);
-            sl.setTitle(Title);
-            sl.setDefaultValue(true);
-            sl.setIconSpaceReserved(false);
-            LocationCate.addPreference(sl);
-
-            Stream.of(SensorLocation.values()).sorted().forEach(
-                    it -> {
-                        SwitchPreferenceCompat s = new SwitchPreferenceCompat(requireContext());
-                        s.setKey(String.valueOf(it.getType()));
-                        s.setTitle(it.name().substring(5));
-                        s.setDefaultValue(true);
-                        s.setIconSpaceReserved(false);
-                        LocationCate.addPreference(s);
+            locationCate.addPreference(
+                SwitchPreferenceCompat(requireContext()).apply {
+                    key = Settings.PREF_LOCATION
+                    title = firstTitle
+                    setDefaultValue(true)
+                    isIconSpaceReserved = false
+                }
+            )
+            SensorLocation.values().asSequence().forEach {
+                locationCate.addPreference(
+                    SwitchPreferenceCompat(requireContext()).apply {
+                        key = it.type.toString()
+                        title = it.name.substring(5)
+                        setDefaultValue(true)
+                        isIconSpaceReserved = false
                     }
-            );
-
-            for (int i = 1; i < LocationCate.getPreferenceCount(); i++) {
-                LocationCate.getPreference(i).setDependency(KEY_LOCATION);
+                )
+            }
+            for (i in 1 until locationCate.preferenceCount) {
+                locationCate.getPreference(i).dependency = Settings.PREF_LOCATION
             }
 
+
             // Environment
-            PreferenceCategory EnvironmentCate = new PreferenceCategory(requireContext());
-            EnvironmentCate.setTitle(R.string.title_environment_cate);
-            EnvironmentCate.setIconSpaceReserved(false);
-            preferenceScreen.addPreference(EnvironmentCate);
+            val environmentCate = PreferenceCategory(requireContext()).apply {
+                title = resources.getString(R.string.title_environment_cate)
+                isIconSpaceReserved = false
+            }
+            preferenceScreen.addPreference(environmentCate)
 
-            SwitchPreferenceCompat se = new SwitchPreferenceCompat(requireContext());
-            se.setKey(KEY_ENVIRONMENT);
-            se.setTitle(Title);
-            se.setDefaultValue(true);
-            se.setIconSpaceReserved(false);
-            EnvironmentCate.addPreference(se);
-
-            Stream.of(SensorEnvironment.values()).sorted().forEach(
-                    it -> {
-                        SwitchPreferenceCompat s = new SwitchPreferenceCompat(requireContext());
-                        s.setKey(String.valueOf(it.getType()));
-                        s.setTitle(it.name().substring(5));
-                        s.setDefaultValue(true);
-                        s.setIconSpaceReserved(false);
-                        EnvironmentCate.addPreference(s);
+            environmentCate.addPreference(
+                SwitchPreferenceCompat(requireContext()).apply {
+                    key = Settings.PREF_ENVIRONMENT
+                    title = firstTitle
+                    setDefaultValue(true)
+                    isIconSpaceReserved = false
+                }
+            )
+            SensorEnvironment.values().asSequence().forEach {
+                environmentCate.addPreference(
+                    SwitchPreferenceCompat(requireContext()).apply {
+                        key = it.type.toString()
+                        title = it.name.substring(5)
+                        setDefaultValue(true)
+                        isIconSpaceReserved = false
                     }
-            );
-            for (int i = 1; i < EnvironmentCate.getPreferenceCount(); i++) {
-                EnvironmentCate.getPreference(i).setDependency(KEY_ENVIRONMENT);
+                )
+            }
+            for (i in 1 until environmentCate.preferenceCount) {
+                environmentCate.getPreference(i).dependency = Settings.PREF_ENVIRONMENT
             }
         }
     }
-
 }
