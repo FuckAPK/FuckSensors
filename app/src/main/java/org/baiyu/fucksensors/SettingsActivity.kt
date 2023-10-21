@@ -16,6 +16,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.settings_layout)
         try {
+            @Suppress("DEPRECATION")
             getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_WORLD_READABLE)
         } catch (e: Exception) {
             getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_PRIVATE)
@@ -120,6 +121,22 @@ class SettingsActivity : AppCompatActivity() {
             for (i in 1 until environmentCate.preferenceCount) {
                 environmentCate.getPreference(i).dependency = Settings.PREF_ENVIRONMENT
             }
+
+            // Others
+            val othersCate = PreferenceCategory(requireContext()).apply {
+                title = resources.getString(R.string.title_others_cate)
+                isIconSpaceReserved = false
+            }
+            preferenceScreen.addPreference(othersCate)
+
+            othersCate.addPreference(
+                SwitchPreferenceCompat(requireContext()).apply {
+                    key = Settings.PREF_OTHERS
+                    title = firstTitle
+                    setDefaultValue(true)
+                    isIconSpaceReserved = false
+                }
+            )
         }
     }
 }

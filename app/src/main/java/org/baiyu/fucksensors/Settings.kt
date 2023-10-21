@@ -5,29 +5,35 @@ import de.robv.android.xposed.XSharedPreferences
 import org.baiyu.fucksensors.sensor.SensorEnvironment
 import org.baiyu.fucksensors.sensor.SensorLocation
 import org.baiyu.fucksensors.sensor.SensorMotion
-import org.baiyu.fucksensors.sensor.SensorType
 
 class Settings private constructor(private val prefs: SharedPreferences) {
     val blockSensorsSet: Set<Int>
         get() {
             (prefs as? XSharedPreferences)?.reload()
-            val allSensorTypes: MutableSet<SensorType> = HashSet()
+
+            val handledSensorTypes: MutableSet<Int> = HashSet()
             if (prefs.getBoolean(PREF_MOTION, true)) {
-                allSensorTypes.addAll(SensorMotion.values())
+                handledSensorTypes.addAll(SensorMotion.values().map { it.type })
             }
             if (prefs.getBoolean(PREF_LOCATION, true)) {
-                allSensorTypes.addAll(SensorLocation.values())
+                handledSensorTypes.addAll(SensorLocation.values().map { it.type })
             }
             if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
-                allSensorTypes.addAll(SensorEnvironment.values())
+                handledSensorTypes.addAll(SensorEnvironment.values().map { it.type })
             }
-            return allSensorTypes.asSequence()
-                .map { it.type }
+
+            val blockSensorsSet = handledSensorTypes.asSequence()
                 .filter { prefs.getBoolean(it.toString(), true) }
-                .toSet()
+                .toMutableSet()
+            if (prefs.getBoolean(PREF_OTHERS, true)) {
+                val otherSensorTypes = (1..100).filterNot { it in handledSensorTypes }
+                blockSensorsSet.addAll(otherSensorTypes)
+            }
+            return blockSensorsSet.toSet()
         }
 
     companion object {
+        const val PREF_OTHERS = "others"
         const val PREF_MOTION = "motion"
         const val PREF_LOCATION = "location"
         const val PREF_ENVIRONMENT = "environment"

@@ -9,8 +9,8 @@ android {
         applicationId = "org.baiyu.fucksensors"
         minSdk = 26
         targetSdk = 34
-        versionCode = 6
-        versionName = "3.0"
+        versionCode = 7
+        versionName = "3.1"
         resourceConfigurations += "en"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

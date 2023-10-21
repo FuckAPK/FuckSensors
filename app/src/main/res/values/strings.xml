@@ -6,4 +6,5 @@
     <string name="title_environment_cate">Environment</string>
     <string name="tip_settings">Enable to block access</string>
     <string name="title_all">ALL</string>
+    <string name="title_others_cate">Others</string>
 </resources>
