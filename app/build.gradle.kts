@@ -11,8 +11,8 @@ android {
         applicationId = "org.baiyu.fucksensors"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "3.2"
+        versionCode = 9
+        versionName = "4.0"
         resourceConfigurations += "en"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -46,8 +46,8 @@ android {
         buildConfig = true
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 dependencies {
