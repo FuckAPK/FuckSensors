@@ -1,0 +1,14 @@
+package org.lyaaz.fucksensors.sensor
+
+import android.hardware.Sensor
+
+enum class SensorLocation(override val type: Int) : SensorType {
+    TYPE_GAME_ROTATION_VECTOR(Sensor.TYPE_GAME_ROTATION_VECTOR),
+    TYPE_GEOMAGNETIC_ROTATION_VECTOR(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR),
+    TYPE_MAGNETIC_FIELD(Sensor.TYPE_MAGNETIC_FIELD),
+    TYPE_MAGNETIC_FIELD_UNCALIBRATED(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED),
+
+    //    TYPE_ORIENTATION(Sensor.TYPE_ORIENTATION),
+    TYPE_PROXIMITY(Sensor.TYPE_PROXIMITY)
+
+}

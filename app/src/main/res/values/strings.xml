@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Fuck Sensors</string>
+    <string name="app_desc">Fuck Sensors!</string>
+    <string name="title_motion_cate">Motion</string>
+    <string name="title_location_cate">Location</string>
+    <string name="title_environment_cate">Environment</string>
+    <string name="tip_settings">Enable to block access</string>
+    <string name="title_all">ALL</string>
+    <string name="title_others_cate">Others</string>
+</resources>
