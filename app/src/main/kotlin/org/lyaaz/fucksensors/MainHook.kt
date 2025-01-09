@@ -84,6 +84,11 @@ class MainHook : IXposedHookLoadPackage {
         override fun afterHookedMethod(param: MethodHookParam) {
             val s = (param.result as? Sensor) ?: return
 
+            settings.reload()
+            if (!settings.hookEnabled) {
+                return
+            }
+
             if (settings.blockSensorsSet.contains(s.type)) {
                 param.result = null
                 XposedBridge.log("Sensor Fucked(Default Hook): " + lpparam.packageName + ": " + s.name + ", " + s.stringType)
@@ -94,6 +99,11 @@ class MainHook : IXposedHookLoadPackage {
     private class SensorListHook(private val lpparam: LoadPackageParam) : XC_MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
             val sensorList = (param.result as? List<*>) ?: return
+
+            settings.reload()
+            if (!settings.hookEnabled) {
+                return
+            }
 
             param.result = sensorList.asSequence()
                 .map { it as Sensor }
@@ -119,6 +129,11 @@ class MainHook : IXposedHookLoadPackage {
         @Throws(Throwable::class)
         override fun beforeHookedMethod(param: MethodHookParam) {
             val s = (param.args[1] as? Sensor) ?: return
+
+            settings.reload()
+            if (!settings.hookEnabled) {
+                return
+            }
 
             if (settings.blockSensorsSet.contains(s.type)) {
                 param.result = true

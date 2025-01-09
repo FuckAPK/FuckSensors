@@ -1,142 +1,198 @@
 package org.lyaaz.fucksensors
 
-import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.preference.PreferenceCategory
-import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreferenceCompat
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import org.lyaaz.fucksensors.sensor.SensorEnvironment
 import org.lyaaz.fucksensors.sensor.SensorLocation
 import org.lyaaz.fucksensors.sensor.SensorMotion
+import org.lyaaz.fucksensors.ui.AppTheme as Theme
 
-class SettingsActivity : AppCompatActivity() {
-    @SuppressLint("WorldReadableFiles")
+class SettingsActivity : ComponentActivity() {
+
+    private var currentUiMode: Int? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.settings_layout)
-        try {
-            @Suppress("DEPRECATION")
-            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_WORLD_READABLE)
-        } catch (e: Exception) {
-            getSharedPreferences(BuildConfig.APPLICATION_ID + "_preferences", MODE_PRIVATE)
+        enableEdgeToEdge()
+        currentUiMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        setContent {
+            Theme {
+                SettingsScreen()
+            }
         }
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.settings_container, MySettingsFragment())
-            .commit()
     }
 
-    class MySettingsFragment : PreferenceFragmentCompat() {
-        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            setPreferencesFromResource(R.xml.preferences, rootKey)
-            val preferenceScreen = this.preferenceScreen
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val newUiMode = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        if (newUiMode != currentUiMode) {
+            recreate()
+        }
+    }
+}
 
-            val firstTitle = resources.getString(R.string.title_all)
+@Preview
+@Composable
+fun SettingsScreenPreview() {
+    Theme {
+        SettingsScreen()
+    }
+}
 
-            // Motion
-            val motionCate = PreferenceCategory(requireContext()).apply {
-                title = resources.getString(R.string.title_motion_cate)
-                isIconSpaceReserved = false
-            }
-            preferenceScreen.addPreference(motionCate)
+@Composable
+fun SettingsScreen() {
+    val context = LocalContext.current
+    val prefs = Utils.getPrefs(context)
+    val settings = Settings.getInstance(prefs)
 
-            motionCate.addPreference(
-                SwitchPreferenceCompat(requireContext()).apply {
-                    key = Settings.PREF_MOTION
-                    title = firstTitle
-                    setDefaultValue(true)
-                    isIconSpaceReserved = false
-                }
+    val cats = mapOf(
+        stringResource(R.string.title_motion_cate) to SensorMotion::class.java,
+        stringResource(R.string.title_location_cate) to SensorLocation::class.java,
+        stringResource(R.string.title_environment_cate) to SensorEnvironment::class.java
+    )
+
+    var ALL by remember {
+        mutableStateOf(prefs.getBoolean(Settings.PREF_ALL, true))
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .imePadding()
+    ) {
+        item {
+            SwitchPreferenceItem(
+                title = stringResource(id = R.string.title_all),
+                checked = ALL,
+                onCheckedChange = {
+                    ALL = it
+                    prefs.edit {
+                        putBoolean(Settings.PREF_ALL, it)
+                    }
+                },
             )
-            SensorMotion.values().asSequence().forEach {
-                val s = SwitchPreferenceCompat(requireContext()).apply {
-                    key = it.type.toString()
-                    title = it.name.substring(5)
-                    setDefaultValue(true)
-                    isIconSpaceReserved = false
-                }
-                motionCate.addPreference(s)
+        }
+        items(cats.toList()) { (title, sensorType) ->
+            var all by remember {
+                mutableStateOf(prefs.getBoolean(title, true))
             }
-
-            for (i in 1 until motionCate.preferenceCount) {
-                motionCate.getPreference(i).dependency = Settings.PREF_MOTION
-            }
-
-            // Location
-            val locationCate = PreferenceCategory(requireContext()).apply {
-                title = resources.getString(R.string.title_location_cate)
-                isIconSpaceReserved = false
-            }
-            preferenceScreen.addPreference(locationCate)
-
-            locationCate.addPreference(
-                SwitchPreferenceCompat(requireContext()).apply {
-                    key = Settings.PREF_LOCATION
-                    title = firstTitle
-                    setDefaultValue(true)
-                    isIconSpaceReserved = false
-                }
-            )
-            SensorLocation.values().asSequence().forEach {
-                locationCate.addPreference(
-                    SwitchPreferenceCompat(requireContext()).apply {
-                        key = it.type.toString()
-                        title = it.name.substring(5)
-                        setDefaultValue(true)
-                        isIconSpaceReserved = false
+            PreferenceCategory(title) {
+                SwitchPreferenceItem(
+                    title = stringResource(id = R.string.title_all),
+                    enabled = ALL,
+                    checked = all,
+                    onCheckedChange = {
+                        all = it
+                        prefs.edit {
+                            putBoolean(title, it)
+                        }
                     }
                 )
-            }
-            for (i in 1 until locationCate.preferenceCount) {
-                locationCate.getPreference(i).dependency = Settings.PREF_LOCATION
-            }
-
-
-            // Environment
-            val environmentCate = PreferenceCategory(requireContext()).apply {
-                title = resources.getString(R.string.title_environment_cate)
-                isIconSpaceReserved = false
-            }
-            preferenceScreen.addPreference(environmentCate)
-
-            environmentCate.addPreference(
-                SwitchPreferenceCompat(requireContext()).apply {
-                    key = Settings.PREF_ENVIRONMENT
-                    title = firstTitle
-                    setDefaultValue(true)
-                    isIconSpaceReserved = false
-                }
-            )
-            SensorEnvironment.values().asSequence().forEach {
-                environmentCate.addPreference(
-                    SwitchPreferenceCompat(requireContext()).apply {
-                        key = it.type.toString()
-                        title = it.name.substring(5)
-                        setDefaultValue(true)
-                        isIconSpaceReserved = false
+                sensorType.enumConstants!!.forEach { sensor ->
+                    val key = sensor.type.toString()
+                    var checked by remember {
+                        mutableStateOf(prefs.getBoolean(key, true))
                     }
-                )
-            }
-            for (i in 1 until environmentCate.preferenceCount) {
-                environmentCate.getPreference(i).dependency = Settings.PREF_ENVIRONMENT
-            }
-
-            // Others
-            val othersCate = PreferenceCategory(requireContext()).apply {
-                title = resources.getString(R.string.title_others_cate)
-                isIconSpaceReserved = false
-            }
-            preferenceScreen.addPreference(othersCate)
-
-            othersCate.addPreference(
-                SwitchPreferenceCompat(requireContext()).apply {
-                    key = Settings.PREF_OTHERS
-                    title = firstTitle
-                    setDefaultValue(true)
-                    isIconSpaceReserved = false
+                    SwitchPreferenceItem(
+                        title = sensor.name.removePrefix("TYPE_"),
+                        enabled = ALL and all,
+                        checked = checked,
+                        onCheckedChange = {
+                            checked = it
+                            prefs.edit {
+                                putBoolean(key, it)
+                            }
+                        }
+                    )
                 }
+            }
+        }
+        item {
+            Spacer(
+                modifier = Modifier.windowInsetsBottomHeight(
+                    WindowInsets.systemBars
+                )
             )
+        }
+    }
+}
+
+@Composable
+fun PreferenceCategory(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(vertical = 4.dp, horizontal = 16.dp),
+            color = MaterialTheme.colorScheme.primary
+        )
+        content()
+    }
+}
+
+@Composable
+fun SwitchPreferenceItem(
+    title: String,
+    summary: String? = null,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onCheckedChange: (Boolean) -> Unit,
+    noSwitch: Boolean = false
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 2.dp, horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(if (enabled) 1.0f else 0.6f)
+                )
+                if (summary != null) {
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(if (enabled) 1.0f else 0.6f)
+                    )
+                }
+            }
+            if (!noSwitch) {
+                Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+            }
         }
     }
 }
