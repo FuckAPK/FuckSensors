@@ -23,6 +23,7 @@ import androidx.core.content.edit
 import org.lyaaz.fucksensors.sensor.SensorEnvironment
 import org.lyaaz.fucksensors.sensor.SensorLocation
 import org.lyaaz.fucksensors.sensor.SensorMotion
+import org.lyaaz.fucksensors.sensor.SensorType
 import org.lyaaz.fucksensors.ui.AppTheme as Theme
 
 class SettingsActivity : ComponentActivity() {
@@ -60,12 +61,21 @@ fun SettingsScreenPreview() {
 fun SettingsScreen() {
     val context = LocalContext.current
     val prefs = Utils.getPrefs(context)
-    val settings = Settings.getInstance(prefs)
 
-    val cats = mapOf(
-        stringResource(R.string.title_motion_cate) to SensorMotion::class.java,
-        stringResource(R.string.title_location_cate) to SensorLocation::class.java,
-        stringResource(R.string.title_environment_cate) to SensorEnvironment::class.java
+    data class SensorData<T>(
+        val type: Class<T>,
+        val name: String,
+        val stringType: String
+    ) where T : Enum<T>, T : SensorType
+
+    val cats = listOf(
+        SensorData(SensorMotion::class.java, stringResource(R.string.title_motion_cate), Settings.PREF_MOTION),
+        SensorData(SensorLocation::class.java, stringResource(R.string.title_location_cate), Settings.PREF_LOCATION),
+        SensorData(
+            SensorEnvironment::class.java,
+            stringResource(R.string.title_environment_cate),
+            Settings.PREF_ENVIRONMENT
+        )
     )
 
     var ALL by remember {
@@ -90,9 +100,9 @@ fun SettingsScreen() {
                 },
             )
         }
-        items(cats.toList()) { (title, sensorType) ->
+        items(cats) { (sensorType, title, key) ->
             var all by remember {
-                mutableStateOf(prefs.getBoolean(title, true))
+                mutableStateOf(prefs.getBoolean(key, true))
             }
             PreferenceCategory(title) {
                 SwitchPreferenceItem(
@@ -102,7 +112,7 @@ fun SettingsScreen() {
                     onCheckedChange = {
                         all = it
                         prefs.edit {
-                            putBoolean(title, it)
+                            putBoolean(key, it)
                         }
                     }
                 )
@@ -123,6 +133,25 @@ fun SettingsScreen() {
                         }
                     )
                 }
+            }
+        }
+        item {
+            PreferenceCategory(
+                title = stringResource(R.string.title_others_cate)
+            ) {
+                var checked by remember {
+                    mutableStateOf(prefs.getBoolean(Settings.PREF_OTHERS, true))
+                }
+                SwitchPreferenceItem(
+                    title = stringResource(R.string.title_all),
+                    checked = checked,
+                    onCheckedChange = {
+                        checked = it
+                        prefs.edit {
+                            putBoolean(Settings.PREF_OTHERS, it)
+                        }
+                    },
+                )
             }
         }
         item {
