@@ -24,7 +24,7 @@ import org.lyaaz.fucksensors.sensor.SensorEnvironment
 import org.lyaaz.fucksensors.sensor.SensorLocation
 import org.lyaaz.fucksensors.sensor.SensorMotion
 import org.lyaaz.fucksensors.sensor.SensorType
-import org.lyaaz.fucksensors.ui.AppTheme as Theme
+import org.lyaaz.ui.theme.AppTheme as Theme
 
 class SettingsActivity : ComponentActivity() {
 
@@ -34,7 +34,7 @@ class SettingsActivity : ComponentActivity() {
         enableEdgeToEdge()
         currentUiMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         setContent {
-            Theme {
+            Theme(applyStatusBarColor = true) {
                 SettingsScreen()
             }
         }
@@ -52,7 +52,7 @@ class SettingsActivity : ComponentActivity() {
 @Preview
 @Composable
 fun SettingsScreenPreview() {
-    Theme {
+    Theme(applyStatusBarColor = true) {
         SettingsScreen()
     }
 }
