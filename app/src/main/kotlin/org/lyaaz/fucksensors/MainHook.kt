@@ -105,15 +105,13 @@ class MainHook : IXposedHookLoadPackage {
                 return
             }
 
-            param.result = sensorList.asSequence()
-                .map { it as Sensor }
-                .filter { !settings.blockSensorsSet.contains(it.type) }
-                .toList()
+            val blockedTypes = settings.blockSensorsSet
+            val (hiddenSensors, allowedSensors) = sensorList.asSequence()
+                .filterIsInstance<Sensor>()
+                .partition { blockedTypes.contains(it.type) }
 
-            val hiddenSensors = sensorList.asSequence()
-                .map { it as Sensor }
-                .filter { settings.blockSensorsSet.contains(it.type) }
-                .toList()
+            param.result = allowedSensors
+
             if (hiddenSensors.isEmpty()) {
                 return
             }

@@ -7,36 +7,45 @@ import org.lyaaz.fucksensors.sensor.SensorLocation
 import org.lyaaz.fucksensors.sensor.SensorMotion
 
 class Settings private constructor(private val prefs: SharedPreferences) {
+    @Volatile
+    private var _cachedBlockSensorsSet: Set<Int>? = null
+
     fun reload() {
         (prefs as? XSharedPreferences)?.reload()
+        _cachedBlockSensorsSet = computeBlockSensorsSet()
     }
 
     val hookEnabled: Boolean
         get() {
             return prefs.getBoolean(PREF_ALL, true)
         }
-    val blockSensorsSet: Set<Int>
-        get() {
-            val handledSensorTypes: MutableSet<Int> = HashSet()
-            if (prefs.getBoolean(PREF_MOTION, true)) {
-                handledSensorTypes.addAll(SensorMotion.entries.map { it.type })
-            }
-            if (prefs.getBoolean(PREF_LOCATION, true)) {
-                handledSensorTypes.addAll(SensorLocation.entries.map { it.type })
-            }
-            if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
-                handledSensorTypes.addAll(SensorEnvironment.entries.map { it.type })
-            }
 
-            val blockSensorsSet = handledSensorTypes.asSequence()
-                .filter { prefs.getBoolean(it.toString(), true) }
-                .toMutableSet()
-            if (prefs.getBoolean(PREF_OTHERS, true)) {
-                val otherSensorTypes = (1..100).filterNot { it in handledSensorTypes }
-                blockSensorsSet.addAll(otherSensorTypes)
-            }
-            return blockSensorsSet.toSet()
+    val blockSensorsSet: Set<Int>
+        get() = _cachedBlockSensorsSet ?: synchronized(this) {
+            _cachedBlockSensorsSet ?: computeBlockSensorsSet().also { _cachedBlockSensorsSet = it }
         }
+
+    private fun computeBlockSensorsSet(): Set<Int> {
+        val handledSensorTypes: MutableSet<Int> = HashSet()
+        if (prefs.getBoolean(PREF_MOTION, true)) {
+            handledSensorTypes.addAll(SensorMotion.entries.map { it.type })
+        }
+        if (prefs.getBoolean(PREF_LOCATION, true)) {
+            handledSensorTypes.addAll(SensorLocation.entries.map { it.type })
+        }
+        if (prefs.getBoolean(PREF_ENVIRONMENT, true)) {
+            handledSensorTypes.addAll(SensorEnvironment.entries.map { it.type })
+        }
+
+        val blockSensorsSet = handledSensorTypes.asSequence()
+            .filter { prefs.getBoolean(it.toString(), true) }
+            .toMutableSet()
+        if (prefs.getBoolean(PREF_OTHERS, true)) {
+            val otherSensorTypes = (1..100).filterNot { it in handledSensorTypes }
+            blockSensorsSet.addAll(otherSensorTypes)
+        }
+        return blockSensorsSet
+    }
 
     companion object {
         const val PREF_ALL = "all"
