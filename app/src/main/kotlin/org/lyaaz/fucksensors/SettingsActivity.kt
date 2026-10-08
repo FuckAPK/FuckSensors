@@ -196,7 +196,7 @@ fun SwitchPreferenceItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(vertical = 2.dp, horizontal = 16.dp)
     ) {
         Row(
